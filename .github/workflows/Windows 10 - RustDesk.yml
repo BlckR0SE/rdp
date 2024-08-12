@@ -1,45 +1,32 @@
-name: Windows RDP Setup
+name: Windows RustDesk Setup
 
 on:
   workflow_dispatch:
 
 jobs:
-  rdp:
+  rustdesk:
     runs-on: windows-latest
     steps:
-    - name: Set up RDP environment
+    - name: Download RustDesk
       run: |
-        # Set RDP username and password
-        $username = "rdpuser"
-        $password = "P@ssw0rd123"
-        
-        # Create the user and set the password
-        net user $username $password /add
-        net localgroup administrators $username /add
-        
-        # Enable RDP
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\' -name "fDenyTSConnections" -Value 0
-        
-        # Configure RDP settings
-        reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f
-        reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f
-        
-        # Enable the RDP firewall rule
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        
-        # Allow ICMP for ping (optional, useful for troubleshooting connectivity)
-        Enable-NetFirewallRule -Name FPS-ICMP4-ERQ-In
+        Invoke-WebRequest -Uri https://github.com/rustdesk/rustdesk/releases/download/1.2.0/rustdesk-1.2.0-windows.zip -OutFile rustdesk.zip
+        Expand-Archive -Path rustdesk.zip -DestinationPath .
+        Move-Item -Path "./rustdesk-1.2.0-windows/*" -Destination . -Force
 
-        # Show current RDP status
-        quser
+    - name: Start RustDesk and Capture ID/Password
+      run: |
+        # Start RustDesk in service mode and capture the output
+        Start-Process -FilePath ./rustdesk.exe -ArgumentList "-s" -RedirectStandardOutput "./rustdesk_log.txt" -NoNewWindow -Wait
 
-        # Get IP address
-        $ip = (Invoke-RestMethod -Uri "http://ifconfig.me/ip").Trim()
-        Write-Host "Use this IP address to connect via RDP: $ip"
+        # Wait for RustDesk to start up and generate the ID and password
+        Start-Sleep -Seconds 10
+
+        # Display the RustDesk log file which contains the ID and password
+        Get-Content -Path "./rustdesk_log.txt"
 
     - name: Keep runner alive
       run: |
-        Write-Host "Keeping the GitHub runner alive to maintain RDP connection..."
+        Write-Host "RustDesk is running. Keeping the GitHub runner alive..."
         while ($true) {
           Start-Sleep -Seconds 60
         }
