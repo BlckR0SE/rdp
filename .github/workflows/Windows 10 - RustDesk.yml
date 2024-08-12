@@ -29,11 +29,17 @@ jobs:
         
         # Allow ICMP for ping (optional, useful for troubleshooting connectivity)
         Enable-NetFirewallRule -Name FPS-ICMP4-ERQ-In
-        
+
         # Show current RDP status
         quser
-        
-    - name: Get IP address
-      run: |
+
+        # Get IP address
         $ip = (Invoke-RestMethod -Uri "http://ifconfig.me/ip").Trim()
         Write-Host "Use this IP address to connect via RDP: $ip"
+
+    - name: Keep runner alive
+      run: |
+        Write-Host "Keeping the GitHub runner alive to maintain RDP connection..."
+        while ($true) {
+          Start-Sleep -Seconds 60
+        }
