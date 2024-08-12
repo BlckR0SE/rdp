@@ -19,14 +19,21 @@ jobs:
         
         # Enable RDP
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\' -name "fDenyTSConnections" -Value 0
+        
+        # Configure RDP settings
+        reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f
+        reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f
+        
+        # Enable the RDP firewall rule
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         
-        # Install Chrome Remote Desktop or similar tools if needed
-        # (Optional) Customize installation for any required RDP tools
+        # Allow ICMP for ping (optional, useful for troubleshooting connectivity)
+        Enable-NetFirewallRule -Name FPS-ICMP4-ERQ-In
         
-        echo "RDP Setup Complete. You can connect to this runner using the username $username and the specified password."
-
+        # Show current RDP status
+        quser
+        
     - name: Get IP address
       run: |
-        $ip = (Invoke-WebRequest -Uri "http://ifconfig.me/ip").Content.Trim()
-        echo "Use this IP address to connect via RDP: $ip"
+        $ip = (Invoke-RestMethod -Uri "http://ifconfig.me/ip").Trim()
+        Write-Host "Use this IP address to connect via RDP: $ip"
